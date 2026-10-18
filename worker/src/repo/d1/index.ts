@@ -49,6 +49,18 @@ export function createD1Repos(db: D1Database): Repos {
           notifyPush: r.np === 1,
         }));
       },
+      async findReportTargets(kind) {
+        const col = kind === 'daily' ? 'report_daily' : 'report_weekly';
+        const { results } = await db
+          .prepare(
+            `SELECT u.id, u.telegram_chat_id, u.nickname, u.tag FROM users u
+             LEFT JOIN user_settings s ON s.user_id = u.id
+             WHERE u.nickname IS NOT NULL AND u.telegram_chat_id IS NOT NULL AND COALESCE(s.${col}, 1) = 1
+             ORDER BY u.id`,
+          )
+          .all<{ id: number; telegram_chat_id: string; nickname: string; tag: string }>();
+        return results.map((r) => ({ id: r.id, chatId: r.telegram_chat_id, nickname: r.nickname, tag: r.tag }));
+      },
       async listAll() {
         const { results } = await db
           .prepare(`SELECT ${USER_COLS} FROM users u WHERE u.nickname IS NOT NULL ORDER BY u.nickname, u.tag`)
@@ -220,6 +232,16 @@ export function createD1Repos(db: D1Database): Repos {
           .bind(key, now, resetBefore, resetBefore)
           .first<{ count: number }>();
         return r?.count ?? 1;
+      },
+    },
+
+    maintenance: {
+      async cleanup(now) {
+        await db.batch([
+          db.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now),
+          db.prepare('DELETE FROM auth_codes WHERE expires_at <= ? OR used_at IS NOT NULL').bind(now),
+          db.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(now - 24 * 60 * 60 * 1000),
+        ]);
       },
     },
 

@@ -4,7 +4,7 @@ import { unstable_dev } from 'wrangler';
 import assert from 'node:assert/strict';
 
 const worker = await unstable_dev('src/index.ts', {
-  experimental: { disableExperimentalWarning: true },
+  experimental: { disableExperimentalWarning: true, testScheduled: true },
   local: true,
   logLevel: 'warn',
 });
@@ -293,6 +293,50 @@ try {
   r = await call('/notifications', { token: B.token });
   assert.ok(!r.data.items.some((n) => n.recordId === rec.id), '삭제된 기록의 알림도 정리');
   step('기록 삭제: 관리자만, 관련 알림 정리');
+
+  // ---------- 4단계: 리포트 ----------
+  r = await call('/records', {
+    method: 'POST',
+    token: A.token,
+    body: {
+      peerIds: [B.user.id],
+      toolId: tools[0].id,
+      phoneExchanged: true,
+      answers: [{ questionId: q1.id, reason: '' }, { questionId: q2.id, reason: '' }],
+    },
+  });
+  assert.equal(r.status, 201);
+  await call('/me/settings', { method: 'PATCH', token: C.token, body: { reportDaily: false } });
+
+  r = await call('/dev/run-reports', { method: 'POST', body: { kind: 'daily' } });
+  const dailyB = r.data.messages.find((m) => m.userId === B.user.id);
+  assert.ok(dailyB, 'B 에게 일일 리포트');
+  assert.match(dailyB.text, /받은 평가 <b>1건<\/b> · 번호교환 1건/);
+  assert.ok(dailyB.text.includes(`작성자#${A.user.tag} 1건`));
+  assert.ok(dailyB.text.includes(q1.text) && dailyB.text.includes(q2.text));
+  assert.ok(!r.data.messages.some((m) => m.userId === A.user.id), '받은 평가 없으면 일일 리포트 생략');
+  assert.ok(!r.data.messages.some((m) => m.userId === C.user.id), '일일 리포트 OFF 사용자 제외');
+  step('일일 리포트: 받은 평가 요약, 0건 생략, OFF 제외');
+
+  r = await call('/dev/run-reports', { method: 'POST', body: { kind: 'daily', now: Date.now() + 86400000 } });
+  assert.ok(!r.data.messages.some((m) => m.userId === B.user.id), '다음 날에는 포함되지 않음');
+  r = await call('/dev/run-reports', { method: 'POST', body: { kind: 'weekly', now: Date.now() + 3 * 86400000 } });
+  assert.match(r.data.messages.find((m) => m.userId === B.user.id).text, /최근 7일 받은 평가[\s\S]*1건/);
+  const weeklyC = r.data.messages.find((m) => m.userId === C.user.id);
+  assert.ok(weeklyC && weeklyC.text.includes('받은 평가가 없어요'), '주간 리포트는 0건이어도 발송');
+  step('주간 리포트: 7일 범위, 0건도 발송 / 날짜 경계');
+
+  r = await call('/telegram/webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': 'local-webhook-secret' },
+    body: { message: { text: '/today', chat: { id: Number(`${tid}2`), type: 'private' }, from: { id: Number(`${tid}2`) } } },
+  });
+  assert.equal(r.status, 200);
+  step('봇 /today 명령 처리');
+
+  const sched = await worker.fetch('/__scheduled?cron=0+12+*+*+*');
+  assert.equal(sched.status, 200, 'Cron 핸들러 실행');
+  step('Cron(scheduled) 핸들러 실행');
 
   console.log('\nALL PASSED');
 } finally {

@@ -15,6 +15,8 @@ export interface Config {
   vapidPublicKey: string;
   /** 일별 집계·리포트 기준 시간대 (분). 기본 KST = 540 */
   tzOffsetMinutes: number;
+  /** 리포트 1회 실행당 최대 발송 수 (Workers 무료 플랜 서브요청 한도 50 고려) */
+  reportMaxSends: number;
 }
 
 export interface Deps {
@@ -47,6 +49,12 @@ export function buildConfig(env: Record<string, string | undefined>): Config {
     sessionTtlMs: 30 * DAY,
     loginCodeTtlMs: 5 * 60 * 1000,
     vapidPublicKey: env.VAPID_PUBLIC_KEY ?? '',
-    tzOffsetMinutes: Number.isInteger(Number(env.TZ_OFFSET_MINUTES)) && env.TZ_OFFSET_MINUTES ? Number(env.TZ_OFFSET_MINUTES) : 540,
+    tzOffsetMinutes: intEnv(env.TZ_OFFSET_MINUTES, 540),
+    reportMaxSends: intEnv(env.REPORT_MAX_SENDS, 45),
   };
+}
+
+function intEnv(v: string | undefined, fallback: number): number {
+  const n = Number(v);
+  return v && Number.isInteger(n) ? n : fallback;
 }

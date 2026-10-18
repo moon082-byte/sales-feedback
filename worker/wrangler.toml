@@ -9,6 +9,10 @@ database_name = "sales-feedback"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
+# 매일 12:00 UTC = 21:00 KST: 일일 리포트, 일요일이면 주간 리포트도 함께 발송
+[triggers]
+crons = ["0 12 * * *"]
+
 [vars]
 # 콤마로 구분. GitHub Pages 주소(예: https://<user>.github.io)를 추가
 ALLOWED_ORIGINS = "http://localhost:5173"

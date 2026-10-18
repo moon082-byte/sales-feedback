@@ -3,6 +3,7 @@ import { toPublicUser, type UserSettings } from '../domain';
 import { timingSafeEqual } from '../lib/crypto';
 import { issueLoginCode, logout, verifyLoginCode } from '../services/auth';
 import { handleTelegramUpdate } from '../services/bot';
+import { runReports } from '../services/reports';
 import { searchUsers, setNickname } from '../services/users';
 import { clientKey, readJson, requireAuth, type App } from './common';
 
@@ -36,6 +37,16 @@ export function registerAccountRoutes(app: App) {
     const telegramId = String(body.telegramId ?? '10001');
     const code = await issueLoginCode(deps, { telegramId, chatId: telegramId });
     return c.json({ code });
+  });
+
+  // 로컬 개발 전용: 리포트를 즉시 실행. dryRun 이면 발송 없이 메시지 내용을 반환
+  app.post('/dev/run-reports', async (c) => {
+    const deps = c.get('deps');
+    if (!deps.config.devMode) return c.json({ error: 'not found' }, 404);
+    const body = await readJson(c);
+    const kind = body.kind === 'weekly' ? 'weekly' : 'daily';
+    const now = typeof body.now === 'number' ? body.now : deps.now();
+    return c.json(await runReports(deps, kind, now, { dryRun: body.dryRun !== false }));
   });
 
   app.get('/me', requireAuth, async (c) => {

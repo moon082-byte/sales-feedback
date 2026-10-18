@@ -3,6 +3,7 @@
 import type {
   Analytics,
   NotificationItem,
+  PublicUser,
   Question,
   QuestionCategory,
   RecordAnswer,
@@ -21,7 +22,24 @@ export interface NotifyTarget {
   notifyPush: boolean;
 }
 
+export interface ReportTarget {
+  id: number;
+  chatId: string;
+  nickname: string;
+  tag: string;
+}
+
+/** 특정 사용자가 동료로 태그되어 받은 평가 요약 */
+export interface ReceivedDigest {
+  count: number;
+  phoneExchanged: number;
+  authors: { user: PublicUser; count: number }[];
+  questions: { category: QuestionCategory; text: string; count: number }[];
+}
+
 export interface UserRepo {
+  /** 해당 리포트를 켜 두었고 텔레그램 chat id 가 있는 사용자 */
+  findReportTargets(kind: 'daily' | 'weekly'): Promise<ReportTarget[]>;
   findById(id: number): Promise<User | null>;
   findByTelegramId(telegramId: string): Promise<User | null>;
   /** 닉네임이 설정된 사용자만 반환 */
@@ -110,6 +128,8 @@ export interface RecordRepo {
   timestamps(filter: RecordFilter, limit: number): Promise<number[]>;
   stats(filter: RecordFilter): Promise<{ count: number; phoneExchanged: number }>;
   delete(id: number): Promise<boolean>;
+  /** 기간 [from, to) 내 받은 평가를 받은 사람(user id)별로 요약 */
+  receivedDigests(from: number, to: number): Promise<Map<number, ReceivedDigest>>;
   /** tzOffsetMinutes: 일별 집계 기준 시간대 (KST = 540) */
   analytics(filter: RecordFilter, tzOffsetMinutes: number): Promise<Analytics>;
 }
@@ -135,7 +155,13 @@ export interface PushRepo {
   listForUser(userId: number): Promise<PushSubscriptionRow[]>;
 }
 
+export interface MaintenanceRepo {
+  /** 만료 세션·로그인 코드·오래된 rate limit 기록 정리 */
+  cleanup(now: number): Promise<void>;
+}
+
 export interface Repos {
+  maintenance: MaintenanceRepo;
   users: UserRepo;
   authCodes: AuthCodeRepo;
   sessions: SessionRepo;

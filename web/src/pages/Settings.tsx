@@ -121,7 +121,7 @@ export default function Settings() {
         <div className="row">
           <div>
             <div className="row-label">일일 리포트</div>
-            <div className="row-desc">매일 21시, 오늘 받은 평가 요약</div>
+            <div className="row-desc">매일 21시, 오늘 받은 평가 요약 (받은 날만)</div>
           </div>
           <Toggle label="일일 리포트" checked={s.reportDaily} onChange={(v) => update({ reportDaily: v })} />
         </div>

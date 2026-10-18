@@ -24,6 +24,9 @@ await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
   body: JSON.stringify({
     commands: [
       { command: 'login', description: '웹앱 로그인 인증코드 받기' },
+      { command: 'today', description: '오늘 받은 평가 요약' },
+      { command: 'week', description: '최근 7일 받은 평가 요약' },
+      { command: 'myid', description: '내 텔레그램 ID 확인' },
       { command: 'help', description: '도움말' },
     ],
   }),

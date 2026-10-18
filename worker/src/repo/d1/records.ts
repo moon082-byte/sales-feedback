@@ -1,5 +1,5 @@
 import type { PublicUser, QuestionCategory, RecordAnswer, RecordSummary, Role } from '../../domain';
-import type { NotificationRepo, PushRepo, RecordFilter, RecordRepo, RecordWriteInput } from '../types';
+import type { NotificationRepo, PushRepo, ReceivedDigest, RecordFilter, RecordRepo, RecordWriteInput } from '../types';
 import { placeholders, publicUser } from './util';
 
 interface SummaryRow {
@@ -199,6 +199,54 @@ export function createRecordRepo(db: D1Database): RecordRepo {
     async delete(id) {
       const r = await db.prepare('DELETE FROM records WHERE id = ? RETURNING id').bind(id).first();
       return r !== null;
+    },
+
+    async receivedDigests(from, to) {
+      // 쿼리 수를 일정하게 유지 (Workers 무료 플랜의 호출당 쿼리 한도 고려): 사용자 수와 무관하게 3개
+      const [totals, authors, questions] = await db.batch<Record<string, unknown>>([
+        db
+          .prepare(
+            `SELECT p.user_id, COUNT(*) AS n, COALESCE(SUM(r.phone_exchanged), 0) AS phone
+             FROM record_peers p JOIN records r ON r.id = p.record_id
+             WHERE r.created_at >= ? AND r.created_at < ? GROUP BY p.user_id`,
+          )
+          .bind(from, to),
+        db
+          .prepare(
+            `SELECT p.user_id, a.id AS author_id, a.nickname, a.tag, a.role, COUNT(*) AS n
+             FROM record_peers p JOIN records r ON r.id = p.record_id JOIN users a ON a.id = r.author_id
+             WHERE r.created_at >= ? AND r.created_at < ? GROUP BY p.user_id, a.id ORDER BY n DESC, a.nickname`,
+          )
+          .bind(from, to),
+        db
+          .prepare(
+            `SELECT p.user_id, ra.category, COALESCE(q.text, MAX(ra.question_text)) AS text, COUNT(*) AS n
+             FROM record_peers p JOIN records r ON r.id = p.record_id
+             JOIN record_answers ra ON ra.record_id = r.id LEFT JOIN questions q ON q.id = ra.question_id
+             WHERE r.created_at >= ? AND r.created_at < ? GROUP BY p.user_id, ra.question_id ORDER BY n DESC, ra.question_id`,
+          )
+          .bind(from, to),
+      ]);
+
+      type Row = Record<string, number | string | null>;
+      const out = new Map<number, ReceivedDigest>();
+      for (const r of totals.results as Row[]) {
+        out.set(r.user_id as number, { count: r.n as number, phoneExchanged: r.phone as number, authors: [], questions: [] });
+      }
+      for (const r of authors.results as Row[]) {
+        out.get(r.user_id as number)?.authors.push({
+          user: publicUser(r.author_id as number, r.nickname as string | null, r.tag as string | null, r.role as Role),
+          count: r.n as number,
+        });
+      }
+      for (const r of questions.results as Row[]) {
+        out.get(r.user_id as number)?.questions.push({
+          category: r.category as QuestionCategory,
+          text: r.text as string,
+          count: r.n as number,
+        });
+      }
+      return out;
     },
 
     async analytics(filter, tzOffsetMinutes) {

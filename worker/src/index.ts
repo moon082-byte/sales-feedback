@@ -1,6 +1,7 @@
 // Cloudflare Workers 진입점. 플랫폼 의존 코드는 이 파일에만 둔다.
 import { createApp } from './app';
 import { buildConfig, type Deps } from './deps';
+import { runDailyJobs } from './jobs/scheduled';
 import { createTelegramClient } from './lib/telegram';
 import { createWebPushSender } from './lib/webpush';
 import { createD1Repos } from './repo/d1';
@@ -43,4 +44,9 @@ const app = createApp((env, defer) => buildDeps(env as Env, defer));
 
 export default {
   fetch: app.fetch,
+  // wrangler.toml [triggers] crons — 매일 12:00 UTC (21:00 KST)
+  async scheduled(event, env, ctx) {
+    const deps = buildDeps(env, (task) => ctx.waitUntil(task));
+    ctx.waitUntil(runDailyJobs(deps, event.scheduledTime));
+  },
 } satisfies ExportedHandler<Env>;
