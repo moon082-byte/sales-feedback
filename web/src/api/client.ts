@@ -93,7 +93,9 @@ export function qs(params: Record<string, string | number | undefined>): string 
 }
 
 const BASE =((import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8787').replace(/\/$/, '');
-const TOKEN_KEY = 'session_token';
+// 같은 github.io 출처의 다른 앱(예: 아맞다)과 localStorage 를 공유하므로 앱 접두어를 붙인다
+export const STORAGE_PREFIX = 'sales-feedback:';
+const TOKEN_KEY = `${STORAGE_PREFIX}session_token`;
 
 export const tokenStore = {
   get(): string | null {

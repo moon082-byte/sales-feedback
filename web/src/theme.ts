@@ -1,6 +1,7 @@
 export type ThemePref = 'system' | 'dark' | 'light';
 
-const KEY = 'theme';
+// index.html 의 첫 페인트 스크립트와 같은 키를 써야 한다
+const KEY = 'sales-feedback:theme';
 
 export function getThemePref(): ThemePref {
   try {

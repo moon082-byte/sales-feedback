@@ -16,7 +16,7 @@
     <script>
       // 첫 페인트 전에 테마 적용 (깜빡임 방지)
       try {
-        var t = localStorage.getItem('theme');
+        var t = localStorage.getItem('sales-feedback:theme');
         if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>

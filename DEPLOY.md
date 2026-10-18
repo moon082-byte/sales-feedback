@@ -7,6 +7,8 @@
 [텔레그램] ⇄ 웹훅 ⇄ [Cloudflare Worker + D1 + Cron] ⇄ API ⇄ [GitHub Pages 웹앱(PWA)]
 ```
 
+> **아맞다 앱과 같은 Cloudflare·GitHub 계정을 쓴다면** 먼저 [9. 아맞다와 함께 운영할 때](#9-아맞다와-함께-운영할-때)를 읽어 주세요.
+
 ## 0. 준비물
 
 - Node.js 20 이상 (권장 22)
@@ -84,10 +86,11 @@ npm run deploy
 출력된 주소(`https://sales-feedback-api.<계정>.workers.dev`)를 메모하고 텔레그램 웹훅을 연결합니다.
 
 ```powershell
-$env:BOT_TOKEN="봇 토큰"; $env:WEBHOOK_SECRET="2-3의 TELEGRAM_WEBHOOK_SECRET"; $env:WORKER_URL="https://sales-feedback-api.<계정>.workers.dev"; npm run set-webhook
+$env:BOT_TOKEN="봇 토큰"; $env:BOT_USERNAME="1단계의 봇 사용자명"; $env:WEBHOOK_SECRET="2-3의 TELEGRAM_WEBHOOK_SECRET"; $env:WORKER_URL="https://sales-feedback-api.<계정>.workers.dev"; npm run set-webhook
 ```
 
-`{ ok: true, result: true, ... }` 가 나오면 성공입니다. 봇 명령 메뉴(/login, /today, /week, /myid)도 함께 등록됩니다.
+`웹훅 연결: ...` 과 `봇 명령 메뉴 등록 완료` 가 나오면 성공입니다.
+다른 봇의 토큰이거나(사용자명 불일치), 이미 다른 서비스의 웹훅이 연결된 봇이면 아무것도 바꾸지 않고 중단합니다.
 
 ### 2-5. 관리자 지정
 
@@ -169,3 +172,43 @@ $env:BOT_TOKEN="봇 토큰"; $env:WEBHOOK_SECRET="2-3의 TELEGRAM_WEBHOOK_SECRET
 2. **진입점**: Node용 파일을 새로 만들어 `@hono/node-server` 로 `createApp((env, defer) => deps)` 를 띄웁니다. 환경변수는 `process.env` 를 `buildConfig()` 에 넘기면 됩니다.
 3. **정기 작업**: `node-cron` 등으로 매일 21:00 KST에 `runDailyJobs(deps, Date.now())` 를 호출합니다.
 4. 웹앱은 `VITE_API_BASE` 만 새 서버 주소로 바꾸면 됩니다.
+
+## 9. 아맞다와 함께 운영할 때
+
+같은 Cloudflare 계정과 같은 GitHub 계정(`moon082-byte`)에 두 앱을 함께 올려도 **데이터는 섞이지 않습니다.**
+Worker는 자기 `wrangler.toml` 에 연결된 D1에만 접근할 수 있기 때문입니다.
+
+| 항목 | 아맞다 | 영업 피드백 |
+|---|---|---|
+| Worker | `amatda-bot` | `sales-feedback-api` |
+| D1 | `amatda-bot` | `sales-feedback` |
+| 텔레그램 봇 | 아맞다 봇 | **새로 만든 별도 봇** |
+| 웹앱 주소 | `moon082-byte.github.io/AMATDA/` | `moon082-byte.github.io/<이 저장소 이름>/` |
+| 서비스워커·푸시 구독 | `/AMATDA/` 범위 | `/<이 저장소 이름>/` 범위 |
+| 브라우저 저장소(localStorage) | `flutter.` 접두어 | `sales-feedback:` 접두어 |
+
+### 꼭 지킬 것
+
+1. **텔레그램 봇은 새로 만듭니다.** 아맞다 봇 토큰으로 웹훅을 설정하면 아맞다 봇이 이 서버로 연결돼 멈춥니다.
+   `npm run set-webhook` 은 봇 사용자명이 다르거나 이미 다른 웹훅이 연결된 봇이면 중단하도록 되어 있습니다.
+2. **`wrangler` 명령은 항상 `C:\dev_sales\worker` 에서 실행합니다.** `wrangler deploy`, `wrangler secret put` 은 현재 폴더의 `wrangler.toml` 에 적힌 Worker를 대상으로 합니다.
+   아맞다 폴더(`AMATDA\bot`)에서 실행하면 아맞다 Worker가 바뀝니다. 실행 전에 출력되는 Worker 이름이 `sales-feedback-api` 인지 확인하세요.
+3. **D1 명령에는 DB 이름 `sales-feedback` 을 씁니다.** 이 저장소의 npm 스크립트는 모두 이 이름으로 고정되어 있습니다.
+4. **GitHub 저장소 이름을 `AMATDA` 와 다르게** 만듭니다 (예: `sales-feedback`). 같은 이름이면 웹앱 주소가 겹칩니다.
+5. **Cloudflare의 workers.dev 하위 도메인(`amatda`)은 바꾸지 않습니다.** 이 앱 주소가 `sales-feedback-api.amatda.workers.dev` 가 되어 이름이 어색해도,
+   하위 도메인을 바꾸면 아맞다 앱에 고정된 `amatda-bot.amatda.workers.dev` 주소가 깨집니다.
+
+### 공유되는 것 (알고만 있으면 되는 것)
+
+- **무료 플랜 한도는 계정 전체 합산입니다.** Workers 요청 수, D1 읽기·쓰기를 두 앱이 나눠 씁니다.
+  아맞다는 1분마다, 이 앱은 하루 1번 Cron이 돌아 여유는 충분합니다. Cron은 계정당 5개 한도 중 2개를 씁니다.
+  Cloudflare 대시보드 → Workers & Pages 에서 Worker별 사용량을 확인할 수 있습니다.
+- **알림 권한은 웹 출처(`https://moon082-byte.github.io`) 단위입니다.** 브라우저에서 한쪽 앱의 알림을 '차단'하면 다른 앱도 차단됩니다.
+  (홈 화면에 추가한 앱은 기기에 따라 앱별로 따로 관리되기도 합니다.)
+- 두 Worker의 `ALLOWED_ORIGINS` 가 같은 출처를 허용하지만, 로그인 토큰이 서로 달라 상대 앱의 데이터에는 접근할 수 없습니다.
+
+### 출처까지 완전히 분리하려면 (선택)
+
+알림 권한과 브라우저 저장소까지 나누려면 웹 출처를 다르게 해야 합니다.
+이 앱에 커스텀 도메인(예: `sales.내도메인.com`)을 연결하거나, 별도의 GitHub 조직(Organization) 계정으로 배포하세요.
+이때 `ALLOWED_ORIGINS`, `WEB_APP_URL` 도 새 주소로 바꿉니다.
