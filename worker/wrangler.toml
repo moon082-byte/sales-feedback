@@ -2,11 +2,16 @@ name = "sales-feedback-api"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+# https://sales-feedback-api.<하위 도메인>.workers.dev 주소로 공개 (텔레그램 웹훅·웹앱이 호출)
+# 버전별 미리보기 주소는 만들지 않는다
+workers_dev = true
+preview_urls = false
+
 [[d1_databases]]
 binding = "DB"
 database_name = "sales-feedback"
-# `wrangler d1 create sales-feedback` 실행 후 출력되는 id로 교체
-database_id = "00000000-0000-0000-0000-000000000000"
+# `wrangler d1 create sales-feedback` 로 만든 데이터베이스 (아맞다의 amatda-bot DB와 별개)
+database_id = "a1861ded-efd5-4d44-a077-04081d6019b3"
 migrations_dir = "migrations"
 
 # 매일 12:00 UTC = 21:00 KST: 일일 리포트, 일요일이면 주간 리포트도 함께 발송
@@ -14,16 +19,17 @@ migrations_dir = "migrations"
 crons = ["0 12 * * *"]
 
 [vars]
-# 콤마로 구분. GitHub Pages 주소(예: https://<user>.github.io)를 추가
-ALLOWED_ORIGINS = "http://localhost:5173"
-# 최초 관리자 텔레그램 숫자 ID (콤마 구분)
-ADMIN_TELEGRAM_IDS = ""
-# 봇 메시지에 넣을 웹앱 주소 (선택)
-WEB_APP_URL = ""
+# 웹앱 출처 (콤마 구분, 경로 없이). 로컬 개발용 localhost 는 .dev.vars 에서 덮어쓴다
+ALLOWED_ORIGINS = "https://moon082-byte.github.io"
+# 최초 관리자 텔레그램 숫자 ID (콤마 구분). 봇에게 /myid 로 확인
+ADMIN_TELEGRAM_IDS = "702360070"
+# 봇 메시지에 넣을 웹앱 주소 (GitHub 저장소 이름이 sales-feedback 인 경우)
+WEB_APP_URL = "https://moon082-byte.github.io/sales-feedback/"
 
 # Web Push 공개키 (`npm run gen-vapid` 출력값). 개인키는 secret 으로 등록
-VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = "mailto:admin@example.com"
+VAPID_PUBLIC_KEY = "BBCfX6M3egl5ev54fcHLp4-4bi2K1fuELShbOSjINAG1zNBQTPDRwo2wAR60V5UQqheLregHmJOfiSEiLd58NTw"
+# 푸시 서비스용 연락처. 공개 저장소이므로 개인 이메일 대신 웹앱 주소를 쓴다
+VAPID_SUBJECT = "https://moon082-byte.github.io/sales-feedback/"
 
 # 비밀값은 여기 쓰지 말고 `wrangler secret put <NAME>` 으로 등록:
 #   BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, SESSION_PEPPER, VAPID_PRIVATE_KEY

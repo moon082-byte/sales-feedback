@@ -158,6 +158,8 @@ $env:BOT_TOKEN="봇 토큰"; $env:BOT_USERNAME="1단계의 봇 사용자명"; $e
 | 증상 | 확인할 것 |
 |---|---|
 | 웹앱에서 "네트워크에 연결할 수 없어요" / CORS 오류 | `ALLOWED_ORIGINS` 가 웹앱 출처와 정확히 같은지 (경로·끝 `/` 없이), `VITE_API_BASE` 가 맞는지 |
+| Worker 주소가 404 / `error code: 1042` | `wrangler.toml` 에 `workers_dev = true` 가 있는지, `database_id` 가 `00000000-…` 이 아닌 실제 ID인지 (`npx wrangler d1 list`) 확인 후 `npm run deploy` |
+| `npm ci` 후 wrangler 가 실행되지 않음 | 로컬 `npm run dev`(wrangler dev)를 끈 뒤 `npm ci` 를 다시 실행 (실행 중이면 파일이 잠겨 설치가 중간에 멈춤) |
 | 봇이 응답하지 않음 | `https://api.telegram.org/bot<토큰>/getWebhookInfo` 에서 url·last_error_message 확인, `TELEGRAM_WEBHOOK_SECRET` 이 set-webhook 때와 같은지 |
 | 푸시 알림 토글이 꺼져 있음 | iPhone은 홈 화면 앱에서만 지원, 브라우저 알림 권한 '차단' 여부, `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` 가 같은 쌍인지 |
 | 관리자 메뉴가 안 보임 | `ADMIN_TELEGRAM_IDS` 반영 후 **다시 로그인**했는지 |

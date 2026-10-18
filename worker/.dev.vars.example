@@ -6,6 +6,8 @@ SESSION_PEPPER=local-pepper-change-me
 DEV_MODE=1
 # 로컬 관리자 텔레그램 ID (10001 = 로그인 화면 '개발용 코드 발급' 계정, 99999 = 스모크 테스트용)
 ADMIN_TELEGRAM_IDS=10001,99999
+# 로컬 웹앱 출처 (wrangler.toml 의 운영 값을 덮어씀)
+ALLOWED_ORIGINS=http://localhost:5173
 # 로컬 Web Push 테스트: npm run gen-vapid 출력값을 붙여넣기
 # VAPID_PUBLIC_KEY=
 # VAPID_PRIVATE_KEY=
