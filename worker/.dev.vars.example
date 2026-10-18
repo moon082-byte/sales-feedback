@@ -1,0 +1,12 @@
+# 복사해서 .dev.vars 로 저장 (git에 올리지 않음)
+BOT_TOKEN=123456:replace-me
+TELEGRAM_WEBHOOK_SECRET=local-webhook-secret
+SESSION_PEPPER=local-pepper-change-me
+# 1이면 /dev/login-code 엔드포인트 활성화 (로컬 전용, 배포 환경에선 절대 설정 금지)
+DEV_MODE=1
+# 로컬 관리자 텔레그램 ID (10001 = 로그인 화면 '개발용 코드 발급' 계정, 99999 = 스모크 테스트용)
+ADMIN_TELEGRAM_IDS=10001,99999
+# 로컬 Web Push 테스트: npm run gen-vapid 출력값을 붙여넣기
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY=
+# VAPID_SUBJECT=mailto:dev@example.com

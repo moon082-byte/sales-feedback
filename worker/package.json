@@ -1,0 +1,25 @@
+{
+  "name": "sales-feedback-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply sales-feedback --local",
+    "db:migrate:remote": "wrangler d1 migrations apply sales-feedback --remote",
+    "db:seed:local": "wrangler d1 execute sales-feedback --local --file=./seed/dev-seed.sql",
+    "smoke": "node ./scripts/smoke-test.mjs",
+    "set-webhook": "node ./scripts/set-webhook.mjs",
+    "gen-vapid": "node ./scripts/gen-vapid.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261018.1",
+    "http_ece": "^1.2.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.151.1"
+  }
+}

@@ -1,0 +1,26 @@
+name = "sales-feedback-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sales-feedback"
+# `wrangler d1 create sales-feedback` 실행 후 출력되는 id로 교체
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# 콤마로 구분. GitHub Pages 주소(예: https://<user>.github.io)를 추가
+ALLOWED_ORIGINS = "http://localhost:5173"
+# 최초 관리자 텔레그램 숫자 ID (콤마 구분)
+ADMIN_TELEGRAM_IDS = ""
+# 봇 메시지에 넣을 웹앱 주소 (선택)
+WEB_APP_URL = ""
+
+# Web Push 공개키 (`npm run gen-vapid` 출력값). 개인키는 secret 으로 등록
+VAPID_PUBLIC_KEY = ""
+VAPID_SUBJECT = "mailto:admin@example.com"
+
+# 비밀값은 여기 쓰지 말고 `wrangler secret put <NAME>` 으로 등록:
+#   BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, SESSION_PEPPER, VAPID_PRIVATE_KEY
+# 로컬 개발용 값은 .dev.vars 에 둔다 (.dev.vars.example 참고)
